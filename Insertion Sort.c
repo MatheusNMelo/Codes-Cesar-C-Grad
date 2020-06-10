@@ -243,8 +243,5 @@ void heap_sort(char nome[],int size)
                 list[j]=aux;
                 pilhar(list, j, 0);
         }
-        for (int i = 0; i < size; ++i)
-                printf("%d ", list[i]);
-        printf("\n");
         printf("Heap time: %.4f",(clock() - tempo) / (double)CLOCKS_PER_SEC);
 }
