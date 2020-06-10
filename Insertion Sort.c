@@ -7,6 +7,8 @@
 int insertion_sort(char nome[],int size);
 int selection_sort(char nome[],int size);
 int bubble_sort(char nome[],int size);
+void pilhar(int arr[], int size, int i);
+void heap_sort(char nome[],int size);
 
 int main()
 {
@@ -19,7 +21,7 @@ int main()
         nomes[4]="50000.txt";
         nomes[5]="75000.txt";
         nomes[6]="100000.txt";
-        printf("1-Insertion_Sort\n2-Selection_Sort\n3-Bubble_Sort\n4-7 Em breve\n");
+        printf("1-Insertion_Sort\n2-Selection_Sort\n3-Bubble_Sort\n4-Heap_Sort\n5-7 Em breve\n");
         scanf("%d",&x);
         if (x > 0 && x <= 7){
                 printf("1-1k\n2-5k\n3-10k\n4-20k\n5-50k\n6-75k\n7-100k\n");
@@ -35,6 +37,9 @@ int main()
                         break;
                 case 3: 
                         bubble_sort(nomes[y-1],size);
+                        break;
+                case 4:
+                        heap_sort(nomes[y-1],size);
                         break;
                 default:
                         printf("Opção inválida, ou não criada\n");
@@ -115,7 +120,7 @@ int selection_sort(char nome[],int size)
                 if(c == EOF){
                         list[i] = atoi(num);
                 }
-        }
+        }       
         fclose(arq);
 
         clock_t tempo;
@@ -177,4 +182,69 @@ int bubble_sort(char nome[],int size)
         }
         printf("Bubble time:%f",(clock() - tempo) / (double)CLOCKS_PER_SEC);
         return 0;
+}
+
+void pilhar(int arr[], int size, int i) 
+{
+        int largest = i;
+        int left = 2 * i + 1;
+        int right = 2 * i + 2;
+
+        if (left < size && arr[left] > arr[largest])
+                largest = left;
+        if (right < size && arr[right] > arr[largest])
+                largest = right;
+        if (largest != i) {
+                int aux = arr[i];
+                arr[i]=arr[largest];
+                arr[largest]=aux;
+        pilhar(arr, size, largest);
+        }
+}
+
+void heap_sort(char nome[],int size) 
+{
+        int pos=0,list[size],i=0,l=0;
+        char c,num[6];
+        FILE *arq = fopen(nome,"r");
+        for (c = getc(arq); c != EOF;){
+                if (c == '\t'){
+                        list[i] = atoi(num);
+                        pos=0;
+                        i++;
+                        for(l = 0; l < 6; l++){
+                                num[l]='l';
+                        }
+                }else if(c == '\n'){
+                        list[i] = atoi(num);
+                        pos=0;
+                        i++;
+                        for(l = 0; l < 6; l++){
+                                num[l]='l';
+                        }
+                }else{
+                        num[pos] = c;
+                        pos++;
+                }
+                c = getc(arq);
+                if(c == EOF){
+                        list[i] = atoi(num);
+                }
+        }       
+        fclose(arq);
+
+        clock_t tempo;
+        tempo = clock();
+        for (int i = size / 2 - 1; i >= 0; i--)
+                pilhar(list, size, i);
+        for (int j = size - 1; j >= 0; j--) {
+                int aux = list[0];
+                list[0]=list[j];
+                list[j]=aux;
+                pilhar(list, j, 0);
+        }
+        for (int i = 0; i < size; ++i)
+                printf("%d ", list[i]);
+        printf("\n");
+        printf("Heap time: %.4f",(clock() - tempo) / (double)CLOCKS_PER_SEC);
 }
