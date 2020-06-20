@@ -7,11 +7,15 @@
 int insertion_sort(char nome[],int size);
 int selection_sort(char nome[],int size);
 int bubble_sort(char nome[],int size);
-int merge_sort(char nome[],int size);
+void merge_sort(char nome[],int size);
 void mergeSort(int list[], int a, int b);
 void merge(int list[], int p, int q, int r);
 void pilhar(int list[], int size, int i);
 void heap_sort(char nome[],int size);
+void quickSort(int list[], int low, int high);
+int partition(int list[], int low, int high);
+void quick_sort(char nome[],int size);
+
 
 int main()
 {
@@ -24,7 +28,7 @@ int main()
         nomes[4]="50000.txt";
         nomes[5]="75000.txt";
         nomes[6]="100000.txt";
-        printf("1-Insertion_Sort\n2-Selection_Sort\n3-Bubble_Sort\n4-Heap_Sort\n5-Merge_Sort\n6- Em breve\n");
+        printf("1-Insertion_Sort\n2-Selection_Sort\n3-Bubble_Sort\n4-Heap_Sort\n5-Merge_Sort\n6- Quick_Sort\n");
         scanf("%d",&x);
         if (x > 0 && x <= 7){
                 printf("1-1k\n2-5k\n3-10k\n4-20k\n5-50k\n6-75k\n7-100k\n");
@@ -47,8 +51,11 @@ int main()
                 case 5:
                         merge_sort(nomes[y-1],size);
                         break;
+                case 6:
+                        quick_sort(nomes[y-1],size);
+                        break;
                 default:
-                        printf("Opcao invalida, ou nao criada\n");
+                        printf("Opcao invalida\n");
         }
         return 0;
 }
@@ -286,7 +293,7 @@ void merge(int list[], int p, int q, int r)
         }
 }
 
-int merge_sort(char nome[],int size) 
+void merge_sort(char nome[],int size) 
 {       
         int pos=0,list[size],i=0,l=0;
         char c,num[6];
@@ -321,6 +328,7 @@ int merge_sort(char nome[],int size)
         mergeSort(list,0,size-1);
         printf("Merge time: %.4f",(clock() - tempo) / (double)CLOCKS_PER_SEC);
 }
+
 void mergeSort(int list[], int a, int b)
 {
         if (a < b) {
@@ -328,5 +336,75 @@ void mergeSort(int list[], int a, int b)
                 mergeSort(list, a, m);
                 mergeSort(list, m + 1, b);
                 merge(list, a, m, b);
+        }
+}
+
+void quick_sort(char nome[],int size) 
+{       
+        int pos=0,list[size],i=0,l=0;
+        char c,num[6];
+        FILE *arq = fopen(nome,"r");
+        for (c = getc(arq); c != EOF;){
+                if (c == '\t'){
+                        list[i] = atoi(num);
+                        pos=0;
+                        i++;
+                        for(l = 0; l < 6; l++){
+                                num[l]='l';
+                        }
+                }else if(c == '\n'){
+                        list[i] = atoi(num);
+                        pos=0;
+                        i++;
+                        for(l = 0; l < 6; l++){
+                                num[l]='l';
+                        }
+                }else{
+                        num[pos] = c;
+                        pos++;
+                }
+                c = getc(arq);
+                if(c == EOF){
+                        list[i] = atoi(num);
+                }
+        }       
+        fclose(arq);
+        clock_t tempo;
+        tempo = clock();
+        quickSort(list,0,size-1);
+        printf("Quick time: %.4f",(clock() - tempo) / (double)CLOCKS_PER_SEC);
+}
+
+int partition(int list[], int low, int high) 
+{
+  
+        int pivot = list[high];
+        int i = (low - 1);
+        int aux;
+
+        for (int j = low; j < high; j++) {
+                if (list[j] <= pivot) {
+                        i++;        
+                        aux = list[i];
+                        list[i]=list[j];
+                        list[j]=aux;
+                }
+        }
+
+        aux = list[i + 1];
+        list[i+1]=list[high];
+        list[high]=aux;
+        return (i + 1);
+}
+
+void quickSort(int list[], int low, int high) 
+{
+        if (low < high) {
+    
+                int pi = partition(list, low, high);
+    
+                quickSort(list, low, pi - 1);
+    
+                quickSort(list, pi + 1, high);
         }
 }
