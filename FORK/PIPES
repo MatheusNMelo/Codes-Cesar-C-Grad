@@ -1,0 +1,439 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#include <math.h>
+#include <string.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/shm.h>
+#include <sys/stat.h>
+#include <sys/mman.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+
+int** Leitura(int * col, int * row,char* nome);
+void SerialCalc(int **M1, int **M2,int m1col,int m2lines,int m1lines,int m2col);
+void ForkCalc(int **M1, int **M2,int m1col,int m2lines,int m1lines,int m2col);
+void PipeCalc(int **M1, int **M2,int m1col,int m2lines,int m1lines,int m2col);
+int get_int(int value);
+
+
+int main(int argc, char *argv[])
+{
+	int M1col,M1row;
+	int M2col,M2row;
+        char *nome1 = argv[1];
+        char *nome2 = argv[2];
+	int** M1 = Leitura(&M1col,&M1row,nome1);
+	int** M2 = Leitura(&M2col,&M2row,nome2);
+	if (M1col!= M2row){ 
+		printf("Matrizes incompativeis patrao");
+		exit(0);
+	}else{
+        	SerialCalc(M1,M2,M1col,M2row,M1row,M2col);
+		//ForkCalc(M1,M2,M1col,M2row,M1row,M2col);
+        	PipeCalc(M1,M2,M1col,M2row,M1row,M2col);
+	}
+	return 0;
+}
+
+int** Leitura(int * col, int * row,char* nome)
+{
+        int pos=0,list[50000],ncol=0,nlines=0,i=0,l=0,elem=0;
+        char c,num[10];
+        FILE *arq = fopen(nome,"r");
+        for (c = getc(arq); c != EOF;){
+                if (c == ' ' || c == '\t' || c== ','){
+			if (pos != 0){
+				elem++;
+				list[i] = atoi(num);
+				pos=0;
+				i++;
+				for(l = 0; l < 10; l++){
+					num[l]='l';
+				}
+			}
+			do{
+				c = getc(arq);
+			}while(c == ' ' || c == '\t' || c == ',');
+			if(c == EOF){
+				nlines++;
+				list[i] = atoi(num);
+				break;
+			}
+                }else if(c == '\n'){
+			if (elem !=0){
+				if (pos != 0)
+					elem++;
+				if (nlines == 0)
+					ncol = elem;
+				nlines++;
+				list[i] = atoi(num);
+				pos=0;
+				i++;
+				for(l = 0; l < 10; l++){
+					num[l]='l';
+				}
+			}
+			do{
+				c = getc(arq);
+			}while(c == '\n');
+			
+			if(c == EOF){
+				list[i] = atoi(num);
+				break;
+			}
+                }else{
+                        num[pos] = c;
+                        pos++;
+			c = getc(arq);
+                }
+                if(c == EOF){
+			elem++;
+			nlines++;
+			if (nlines == 1){
+				ncol++;
+			}
+                        list[i] = atoi(num);
+                }
+        }
+        fclose(arq);
+        if (ncol * nlines != elem){
+		printf("Matriz inválida, o número de elementos está incorreto.\n");
+		exit(0);
+        }
+	*col = ncol;
+	*row = nlines;
+
+	int** matrix = malloc(nlines*sizeof(int*));
+	for (int i = 0; i < nlines; i++){
+		matrix[i] = malloc(ncol*sizeof(int));
+	}
+	pos=0;
+        for (i=0; i < nlines; i++){
+                for (l=0; l < ncol; l++){
+                        matrix[i][l] = list[pos];
+                        pos++;
+                }
+	}
+	return matrix;
+}
+
+void SerialCalc(int **M1, int **M2,int m1col,int m2lines,int m1lines,int m2col)
+{
+  
+    	int C[m1lines * m2lines][m1col * m2col];
+
+	printf("\nResultado Serial:\n");
+	clock_t tempo;
+	tempo = clock();
+    	for (int i = 0; i < m1lines; i++) {
+  
+        	for (int k = 0; k < m2lines; k++) {
+  
+            		for (int j = 0; j < m1col; j++) {
+  
+                		for (int l = 0; l < m2col; l++) {
+  
+                    			C[i + l + 1][j + k + 1] = M1[i][j] * M2[k][l];
+                    			printf("%d ", C[i + l + 1][j + k + 1]);
+
+                		}
+            		}
+            	printf("\n");
+        	}
+    	}
+	printf("Tempo de execução Serial: |%f|\n\n",(clock() - tempo) / (double)CLOCKS_PER_SEC);
+}
+
+void ForkCalc(int **M1, int **M2,int m1col,int m2lines,int m1lines,int m2col)
+{
+	
+    	int C[50];
+	char *name ="OS",*p;
+	int fd,status,n;
+	const char *message= "Hello";
+	fd = open("teste.txt", O_RDWR | O_CREAT | O_APPEND, S_IRUSR | S_IWUSR);
+
+	pid_t id1 = fork();
+	if( id1 != 0) /* no processo pai*/
+	{
+		while(1)
+		{
+			waitpid(id1,&status,WUNTRACED);
+		
+			if( WIFEXITED(status) )
+			{
+				pid_t id2 = fork();
+
+				if( id2 != 0) /* no processo pai*/
+				{
+					while(1)
+					{
+						waitpid(id2,&status,WUNTRACED);
+					
+						if( WIFEXITED(status) )
+						{
+							pid_t id3 = fork();
+							
+							if( id3 != 0) /* no processo pai*/
+							{
+								while(1)
+								{
+									waitpid(id3,&status,WUNTRACED);
+								
+									if( WIFEXITED(status) )
+									{
+										pid_t id4 = fork();
+
+										if( id4 != 0) /* no processo pai*/
+										{
+											while(1)
+											{
+												waitpid(id4,&status,WUNTRACED);
+											
+												if( WIFEXITED(status) )
+												{
+													//fd = shm_open(name, O_RDONLY, 0666);
+													printf("hm\n%s",(char *)p);
+													printf("\né isto;\n");
+													//shm_unlink("OS");
+													return;
+												}
+											}
+										}
+										else if (id4 == 0)/* no processo filho 4*/
+										{
+											
+											printf("Resultado Filho 4:\n");
+											for (int i = (m1lines/2); i < m1lines; i++) {
+												
+												for (int k = 0; k < m2lines; k++) {
+										
+													for (int j = (m1col/2); j < m1col; j++) {
+										
+														for (int l = 0; l < m2col; l++) {
+															printf("%d ",(M1[i][j] * M2[k][l]));
+															/*	
+															C[i + l + 1][j + k + 1] = M1[i][j] * M2[k][l];
+															itoa(C[i + l + 1][j + k + 1],message,10);
+															//sprintf(p,"%s\t", message);
+															printf(p,"%s\t", message);
+															p += strlen(message);*/
+														}
+													}
+												//sprintf(p,"\n");
+												printf("\n");
+												}
+												
+											}
+											//shm_unlink("OS");
+											exit(0);
+										}
+									}
+								}
+							}
+							else if (id3 == 0)/* no processo filho 3*/
+							{
+								
+								printf("Resultado Filho 3:\n");
+								for (int i = (m1lines/2); i < m1lines; i++) {
+									
+									for (int k = 0; k < m2lines; k++) {
+							
+										for (int j = 0; j < m1col/2; j++) {
+							
+											for (int l = 0; l < m2col; l++) {
+												printf("%d ",(M1[i][j] * M2[k][l]));
+												/*	
+												C[i + l + 1][j + k + 1] = M1[i][j] * M2[k][l];
+												itoa(C[i + l + 1][j + k + 1],message,10);
+												//sprintf(p,"%s\t", message);
+												printf(p,"%s\t", message);
+												p += strlen(message);*/
+											}
+										}
+									//sprintf(p,"\n");
+									printf("\n");
+									}
+									
+								}
+								//shm_unlink("OS");
+								exit(0);
+							}
+						}
+					}
+				}
+				else if (id2 == 0)/* no processo filho 2*/
+				{
+					
+					printf("Resultado Filho 2:\n");
+					for (int i = 0; i < m1lines/2; i++) {
+						
+						for (int k = 0; k < m2lines; k++) {
+				
+							for (int j = m1col/2; j < m1col; j++) {
+				
+								for (int l = 0; l < m2col; l++) {
+									printf("%d ",(M1[i][j] * M2[k][l]));/*
+									C[i + l + 1][j + k + 1] = M1[i][j] * M2[k][l];
+									itoa(C[i + l + 1][j + k + 1],message,10);
+									sprintf(p,"%s\t", message);
+									printf(p,"%s\t", message);
+									p += strlen(message);*/
+								}
+							}
+						//sprintf(p,"\n");
+						printf("\n");
+						}
+						
+					}
+					//shm_unlink("OS");
+					exit(0);
+				}
+			}
+		}
+	}
+	else if (id1 == 0)/* no processo filho 1*/
+	{
+
+		printf("Resultado Filho 1:\n");
+		for (int i = 0; i < (m1lines/2); i++) {
+			
+			for (int k = 0; k < m2lines; k++) {
+	
+				for (int j = 0; j < (m1col/2); j++) {
+	
+					for (int l = 0; l < m2col; l++) {
+						printf("%d ",(M1[i][j] * M2[k][l]));
+						n = M1[i][j] * M2[k][l];
+						//snprintf(C,50,"%d/n",i);
+						//write(p,C,sizeof(C));
+					}
+				}
+			//write(fd,"\n",sizeof("\n"));
+			printf("\n");
+			}
+			
+    		}
+		shm_unlink("OS");
+		exit(0);
+	}
+}
+
+
+void PipeCalc(int **M1, int **M2,int m1col,int m2lines,int m1lines,int m2col)
+{
+	
+	char write_msg[25] = "Greetings ";
+	char write_msg1[25] = "Greetingsss ";
+	char read_msg[25];
+	int fd[2],status;
+	pid_t pid;
+	/* create the pipe */
+	if (pipe(fd) == -1) {
+		fprintf(stderr,"Pipe failed");
+		return;
+	}
+	/* fork a child process */
+	pid = fork();
+	if (pid < 0) { /* error occurred */
+		fprintf(stderr, "Fork Failed");
+		return;
+	}
+	if (pid > 0) { /* parent process */
+		pid_t pid2 = fork();
+		if (pid2 > 0) { /* parent process */
+		
+			waitpid(pid2,&status,WUNTRACED);
+		
+			if( WIFEXITED(status) )
+			{
+				close(fd[1]);
+				read(fd[0], read_msg, 25);   
+				FILE *fp = fopen("test.txt", "w");
+				if (fp) {
+					fprintf(fp,"%s",read_msg);
+					fclose(fp);
+				}
+				close(fd[0]);
+			}
+		}else{
+			printf("filho 2\n");
+			close(fd[0]);
+			write(fd[1], write_msg, strlen(write_msg)+1);
+			close(fd[1]);
+			return;
+		}
+	}
+	else { /* child process */
+			close(fd[0]);
+			write(fd[1], write_msg1, strlen(write_msg1)+1);
+			close(fd[1]);
+	}
+	return;
+}
+/*
+	int x=0;
+	pid_t id1, id2, id3, id4;
+	id1 = fork();
+	if id1 >0{
+		id2 = fork ();
+		if id2 > 0{
+			id3 = fork();
+			if id3 > 0{
+				id4 = fork();
+				if id4 > 0{
+					while x <= (m1col*m2lines){
+						
+						waitpid(id1,&status,WUNTRACED);
+					
+						if( WIFEXITED(status) )
+						{
+							waitpid(id2,&status,WUNTRACED);
+					
+							if( WIFEXITED(status) )
+							{
+								waitpid(id3,&status,WUNTRACED);
+							
+								if( WIFEXITED(status) )
+								{
+									waitpid(id4,&status,WUNTRACED);
+													
+									if( WIFEXITED(status) )
+									{
+
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	do{
+		for (int i = 0; i < m1lines; i++) {
+	
+			for (int k = 0; k < m2lines; k++) {
+	
+				for (int j = 0; j < m1col; j++) {
+	
+					for (int l = 0; l < m2col; l++) {
+
+						C[i + l + 1][j + k + 1] = M1[i][j] * M2[k][l];
+						printf("%d ", C[i + l + 1][j + k + 1]);
+
+					}
+				}
+			printf("\n");
+			}
+		}
+	}while(x!=10);
+*/
+int get_int(int value){
+  int l=!value;
+  while(value){ l++; value/=10; }
+  return l;
+}
